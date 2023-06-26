@@ -7,25 +7,86 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using eTickets.Data;
 using eTickets.Models;
+using eTickets.Data.Services;
+using System.Numerics;
 
 namespace eTickets.Controllers
 {
     public class CinemasController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly ICinemasService _service;
 
-        public CinemasController(AppDbContext context)
+        public CinemasController(ICinemasService service)
         {
-            _context = context;
+            _service = service;
         }
 
         // GET: Cinemas
         public async Task<IActionResult> Index()
         {
-              return _context.Cinemas != null ? 
-                          View(await _context.Cinemas.ToListAsync()) :
-                          Problem("Entity set 'AppDbContext.Cinemas'  is null.");
+            var result = await _service.GetAllAsync();
+            return View(result);
+              
         }
+        // GET: Cinemas/Create
+        public async Task<IActionResult> Create(){
+            return View();
+        
+        }
+
+        //POST: Cinemas/Create
+        [HttpPost]
+        public async Task<IActionResult> Create([Bind("Logo,Name,Description")]Cinema cinema)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(cinema);
+
+            }
+            await _service.AddAsync(cinema);
+            return RedirectToAction(nameof(Index));
+        }
+        // GET: Cinemas/Edit/1
+
+        public async Task<IActionResult> Edit(int id)
+        {
+            var cinemaDetails = await _service.GetByIdAsync(id);
+            if (cinemaDetails == null) return View("NotFound");
+            return View(cinemaDetails);
+
+        }
+
+        //Post Cinemas/Edit/1
+        [HttpPost]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Logo,Name, Description")]Cinema cinema)
+        {
+            if(!ModelState.IsValid)
+            {
+                return View(cinema);
+            }
+            await _service.UpdateAsync(id,cinema);
+            return RedirectToAction(nameof(Index));
+        }
+
+        //GET: Cinemas/Delete/1
+        public async Task<IActionResult> Delete(int id)
+        {
+            var cinemaDetails = await _service.GetByIdAsync(id);
+            if (cinemaDetails == null) return View("NotFound");
+            return View(cinemaDetails);
+
+        }
+
+        [HttpPost, ActionName("Delete")]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var cinemaDetails = await _service.GetByIdAsync(id);
+            if (cinemaDetails == null) return View("NotFound");
+            await _service.DeleteAsync(id);
+            return RedirectToAction(nameof(Index));
+        }
+
+        /*
 
         // GET: Cinemas/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -159,5 +220,6 @@ namespace eTickets.Controllers
         {
           return (_context.Cinemas?.Any(e => e.Id == id)).GetValueOrDefault();
         }
+        */
     }
 }
