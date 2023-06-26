@@ -64,15 +64,15 @@ namespace eTickets.Controllers
 
        
         [HttpPost]
-        public async Task<IActionResult> Edit(int id, Actor actor)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FullName,ProfilePictureURL,Bio")] Actor actor)
         {
             if (!ModelState.IsValid)
             {
-                await _actorsService.UpdateAsync(id, actor);
-                return RedirectToAction(nameof(Index));
-                
+                return View(actor);
+
             }
-            return View(actor);
+            await _actorsService.UpdateAsync(id, actor);
+            return RedirectToAction(nameof(Index));
         }
 
         //Get:Actors/Delete/1

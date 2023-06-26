@@ -7,42 +7,33 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using eTickets.Data;
 using eTickets.Models;
+using eTickets.Data.Services;
+using System.Numerics;
 
 namespace eTickets.Controllers
 {
     public class ProducersController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IProducersService _service;
 
-        public ProducersController(AppDbContext context)
+        public ProducersController(IProducersService service)
         {
-            _context = context;
+            _service = service;
         }
 
         // GET: Producers
         public async Task<IActionResult> Index()
         {
-              return _context.Producers != null ? 
-                          View(await _context.Producers.ToListAsync()) :
-                          Problem("Entity set 'AppDbContext.Producers'  is null.");
+            return View(await _service.GetAllAsync());
+
         }
-
-        // GET: Producers/Details/5
-        public async Task<IActionResult> Details(int? id)
+            // GET: Producers/Details/5
+        public async Task<IActionResult> Details(int id)
         {
-            if (id == null || _context.Producers == null)
-            {
-                return NotFound();
-            }
+            var producerDetails = await _service.GetByIdAsync(id);
+            if (producerDetails == null) return View("NotFound");
 
-            var producer = await _context.Producers
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (producer == null)
-            {
-                return NotFound();
-            }
-
-            return View(producer);
+            return View(producerDetails);
         }
 
         // GET: Producers/Create
@@ -55,85 +46,50 @@ namespace eTickets.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        
         public async Task<IActionResult> Create([Bind("Id,ProfilePictureURL,FullName,Bio")] Producer producer)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(producer);
-                await _context.SaveChangesAsync();
+                _service.AddAsync(producer);
+               
                 return RedirectToAction(nameof(Index));
             }
             return View(producer);
         }
 
         // GET: Producers/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int id)
         {
-            if (id == null || _context.Producers == null)
-            {
-                return NotFound();
-            }
+            var producerDetails = await _service.GetByIdAsync(id);
+            if (producerDetails == null) return View("NotFound");
 
-            var producer = await _context.Producers.FindAsync(id);
-            if (producer == null)
-            {
-                return NotFound();
-            }
-            return View(producer);
+            return View(producerDetails);
         }
 
         // POST: Producers/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ProfilePictureURL,FullName,Bio")] Producer producer)
+        public async Task<IActionResult> Edit(int id,[Bind("Id,FullName,ProfilePictureURL,Bio")] Producer producer)
         {
-            if (id != producer.Id)
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                return View(producer);
+                
             }
+            await _service.UpdateAsync(id, producer);
+            return RedirectToAction(nameof(Index));
 
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(producer);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ProducerExists(producer.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(producer);
         }
 
         // GET: Producers/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        public async Task<IActionResult> Delete(int id)
         {
-            if (id == null || _context.Producers == null)
-            {
-                return NotFound();
-            }
+            var producerDetails = await _service.GetByIdAsync(id);
+            if (producerDetails == null) return View("NotFound");
 
-            var producer = await _context.Producers
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (producer == null)
-            {
-                return NotFound();
-            }
-
-            return View(producer);
+            return View(producerDetails);
         }
 
         // POST: Producers/Delete/5
@@ -141,23 +97,15 @@ namespace eTickets.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_context.Producers == null)
-            {
-                return Problem("Entity set 'AppDbContext.Producers'  is null.");
-            }
-            var producer = await _context.Producers.FindAsync(id);
-            if (producer != null)
-            {
-                _context.Producers.Remove(producer);
-            }
-            
-            await _context.SaveChangesAsync();
+            var producerDetails = await _service.GetByIdAsync(id);
+
+            if (producerDetails == null) return View("NotFound");
+            await _service.DeleteAsync(id);
+
+
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ProducerExists(int id)
-        {
-          return (_context.Producers?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
+       
     }
 }
